@@ -148,27 +148,28 @@ func (k Keeper) setTotalDelegated(ctx sdk.Context, actor sdk.AccAddress, newAmou
 }
 
 // GetDelegation returns contract delegation for a specified delegator bond with validator.
-func (k Keeper) GetDelegation(ctx sdk.Context, storeKey storetypes.StoreKey, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress) types.Delegation {
+func (k Keeper) GetDelegation(ctx sdk.Context, storeKey storetypes.StoreKey, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress) types.DelegationVirtual {
 	store := ctx.KVStore(storeKey)
 	key := types.BuildDelegationKey(actor, delAddr, valAddr)
 	bz := store.Get(key)
 	if bz == nil {
-		return types.Delegation{
+		return types.DelegationVirtual{
 			DelegatorAddress: delAddr.String(),
 			ValidatorAddress: valAddr.String(),
 			Amount:           math.ZeroInt(),
+			Actor:            actor.String(),
 		}
 	}
-	var del types.Delegation
+	var del types.DelegationVirtual
 	if err := del.Unmarshal(bz); err != nil {
 		panic(err)
 	}
 	return del
 }
 
-// GetAllDelegations returns all delegations for a specific contract
-func (k Keeper) GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) (delegations []types.Delegation) {
-	delegations = make([]types.Delegation, maxRetrieve)
+// GetAllDelegationsVirtualOfActor returns all delegations for a specific contract
+func (k Keeper) GetAllDelegationsVirtualOfActor(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) (delegations []types.DelegationVirtual) {
+	delegations = make([]types.DelegationVirtual, maxRetrieve)
 	store := ctx.KVStore(k.storeKey)
 	contractPrefixKey := types.BuildDelegationsKey(actor)
 
@@ -177,7 +178,7 @@ func (k Keeper) GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetr
 
 	i := 0
 	for ; iterator.Valid() && i < int(maxRetrieve); iterator.Next() {
-		var del types.Delegation
+		var del types.DelegationVirtual
 		if err := del.Unmarshal(iterator.Value()); err != nil {
 			panic(err)
 		}
@@ -186,11 +187,31 @@ func (k Keeper) GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetr
 		i++
 	}
 
-	return delegations[:i] // trim if the array length < maxRetrieve
+	return delegations
+}
+
+// GetAllDelegationsVirtual returns all delegations for all contract
+func (k Keeper) GetAllDelegationsVirtual(ctx sdk.Context) (delegations []types.DelegationVirtual) {
+	delegations = []types.DelegationVirtual{}
+	store := ctx.KVStore(k.storeKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, types.DelegationKey)
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		var del types.DelegationVirtual
+		if err := del.Unmarshal(iterator.Value()); err != nil {
+			panic(err)
+		}
+
+		delegations = append(delegations, del)
+	}
+
+	return delegations
 }
 
 // setDelegation store the delegation of a given delegator bond with validator
-func (k Keeper) setDelegation(ctx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, changeAmount math.Int) {
+func (k Keeper) setDelegationVirtual(ctx sdk.Context, actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress, changeAmount math.Int) {
 	store := ctx.KVStore(k.storeKey)
 
 	newDelegation := k.GetDelegation(ctx, k.storeKey, actor, delAddr, valAddr)
@@ -239,6 +260,17 @@ func (k Keeper) IterateMaxCapLimit(ctx sdk.Context, cb func(sdk.AccAddress, math
 			return
 		}
 	}
+}
+
+// GetAllActors return all contract address
+func (k Keeper) GetAllActors(ctx sdk.Context) []sdk.AccAddress {
+	actors := []sdk.AccAddress{}
+
+	k.IterateMaxCapLimit(ctx, func(contractAddr sdk.AccAddress, _ math.Int) bool {
+		actors = append(actors, contractAddr)
+		return false
+	})
+	return actors
 }
 
 // ModuleLogger returns logger with module attribute

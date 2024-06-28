@@ -20,7 +20,7 @@ type (
 	viewKeeper interface {
 		GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
 		GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
-		GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.Delegation
+		GetAllDelegationsVirtualOfActor(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.DelegationVirtual
 	}
 	slashingKeeper interface {
 		SlashFractionDoubleSign(ctx sdk.Context) (res sdk.Dec)
@@ -90,7 +90,7 @@ func ChainedCustomQuerier(k viewKeeper, sk slashingKeeper, next wasmkeeper.WasmV
 			if err != nil {
 				return nil, sdkerrors.ErrInvalidAddress.Wrap(query.AllDelegations.Contract)
 			}
-			delegations := k.GetAllDelegations(ctx, contractAddr, query.AllDelegations.MaxRetrieve)
+			delegations := k.GetAllDelegationsVirtualOfActor(ctx, contractAddr, query.AllDelegations.MaxRetrieve)
 
 			res = contract.AllDelegationsResponse{
 				Delegations: contract.ConvertDelegationsToWasm(delegations),

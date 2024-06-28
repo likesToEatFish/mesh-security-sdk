@@ -41,14 +41,14 @@ type (
 	}
 )
 
-func ConvertDelegationsToWasm(delegations []types.Delegation) (newDelegations []Delegation) {
+func ConvertDelegationsToWasm(delegations []types.DelegationVirtual) (newDelegations []Delegation) {
 	for _, del := range delegations {
 		delegation := Delegation{
-            Delegator: del.DelegatorAddress,
-            Validator: del.ValidatorAddress,
-            Amount:    del.Amount.String(),
-        }
-        newDelegations = append(newDelegations, delegation)
+			Delegator: del.DelegatorAddress,
+			Validator: del.ValidatorAddress,
+			Amount:    del.Amount.String(),
+		}
+		newDelegations = append(newDelegations, delegation)
 	}
 	return
 }

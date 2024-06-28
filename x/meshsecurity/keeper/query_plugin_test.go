@@ -37,8 +37,8 @@ func TestChainedCustomQuerier(t *testing.T) {
 				GetTotalDelegatedFn: func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
 					return sdk.NewCoin("ALX", math.NewInt(456))
 				},
-				GetAllDelegationsFn: func(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.Delegation {
-					return []types.Delegation{}
+				GetAllDelegationsVirtualOfActorFn: func(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.DelegationVirtual {
+					return []types.DelegationVirtual{}
 				},
 			},
 			expData: []byte(`{"cap":{"denom":"ALX","amount":"123"},"delegated":{"denom":"ALX","amount":"456"}}`),
@@ -89,9 +89,9 @@ func TestChainedCustomQuerier(t *testing.T) {
 var _ viewKeeper = &MockViewKeeper{}
 
 type MockViewKeeper struct {
-	GetMaxCapLimitFn    func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
-	GetTotalDelegatedFn func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
-	GetAllDelegationsFn func(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.Delegation
+	GetMaxCapLimitFn                  func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
+	GetTotalDelegatedFn               func(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin
+	GetAllDelegationsVirtualOfActorFn func(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.DelegationVirtual
 }
 
 func (m MockViewKeeper) GetMaxCapLimit(ctx sdk.Context, actor sdk.AccAddress) sdk.Coin {
@@ -108,9 +108,9 @@ func (m MockViewKeeper) GetTotalDelegated(ctx sdk.Context, actor sdk.AccAddress)
 	return m.GetTotalDelegatedFn(ctx, actor)
 }
 
-func (m MockViewKeeper) GetAllDelegations(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.Delegation {
-	if m.GetAllDelegationsFn == nil {
+func (m MockViewKeeper) GetAllDelegationsVirtualOfActor(ctx sdk.Context, actor sdk.AccAddress, maxRetrieve uint16) []types.DelegationVirtual {
+	if m.GetAllDelegationsVirtualOfActorFn == nil {
 		panic("not expected to be called")
 	}
-	return m.GetAllDelegationsFn(ctx, actor, maxRetrieve)
+	return m.GetAllDelegationsVirtualOfActorFn(ctx, actor, maxRetrieve)
 }

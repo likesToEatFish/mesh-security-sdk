@@ -5,7 +5,7 @@
 ## Table of Contents
 
 - [osmosis/meshsecurity/v1beta1/meshsecurity.proto](#osmosis/meshsecurity/v1beta1/meshsecurity.proto)
-    - [Delegation](#osmosis.meshsecurity.v1beta1.Delegation)
+    - [DelegationVirtual](#osmosis.meshsecurity.v1beta1.DelegationVirtual)
     - [Params](#osmosis.meshsecurity.v1beta1.Params)
     - [VirtualStakingMaxCapInfo](#osmosis.meshsecurity.v1beta1.VirtualStakingMaxCapInfo)
   
@@ -43,9 +43,9 @@
 
 
 
-<a name="osmosis.meshsecurity.v1beta1.Delegation"></a>
+<a name="osmosis.meshsecurity.v1beta1.DelegationVirtual"></a>
 
-### Delegation
+### DelegationVirtual
 Delegation represents the bond with tokens held by an account.
 
 
@@ -53,6 +53,7 @@ Delegation represents the bond with tokens held by an account.
 | ----- | ---- | ----- | ----------- |
 | `delegator_address` | [string](#string) |  | delegator_address is the bech32-encoded address of the delegator. |
 | `validator_address` | [string](#string) |  | validator_address is the bech32-encoded address of the validator. |
+| `actor` | [string](#string) |  | actor is the bech32-encoded address of the contract. |
 | `amount` | [string](#string) |  | amount define the delegation amount. |
 
 

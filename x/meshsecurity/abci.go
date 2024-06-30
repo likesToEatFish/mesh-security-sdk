@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -14,6 +15,20 @@ import (
 // TaskExecutionResponseHandler is an extension point for custom implementations
 type TaskExecutionResponseHandler interface {
 	Handle(ctx sdk.Context, e keeper.ExecResult)
+}
+
+func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k keeper.Keeper) {
+	for _, tmMesh := range req.ByzantineValidators {
+		switch tmMesh.Type {
+
+		case abci.MisbehaviorType_DUPLICATE_VOTE, abci.MisbehaviorType_LIGHT_CLIENT_ATTACK:
+			meshInfration := types.FromABCIMeshInfaction(tmMesh)
+			k.HandleInfration(ctx, meshInfration)
+
+		default:
+			keeper.ModuleLogger(ctx).Error(fmt.Sprintf("ignored unknown type: %s", tmMesh.Type))
+		}
+	}
 }
 
 // EndBlocker is called after every block

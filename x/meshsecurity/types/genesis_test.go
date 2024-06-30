@@ -82,7 +82,7 @@ func TestValidateGenesis(t *testing.T) {
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
-			err := ValidateGenesis(&spec.state)
+			err := ValidateGenesis(&spec.state) // #nosec
 			if spec.expErr {
 				assert.Error(t, err)
 			} else {

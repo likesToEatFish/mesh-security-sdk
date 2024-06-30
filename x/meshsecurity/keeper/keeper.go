@@ -29,6 +29,7 @@ type Keeper struct {
 	bank     types.XBankKeeper
 	Staking  types.XStakingKeeper
 	wasm     types.WasmKeeper
+	Slashing types.SlashingKeeper
 	// the address capable of executing a MsgUpdateParams message. Typically, this
 	// should be the x/gov module account.
 	authority string
@@ -42,10 +43,11 @@ func NewKeeper(
 	bank types.SDKBankKeeper,
 	staking types.SDKStakingKeeper,
 	wasm types.WasmKeeper,
+	slash types.SlashingKeeper,
 	authority string,
 	opts ...Option,
 ) *Keeper {
-	return NewKeeperX(cdc, storeKey, memoryStoreKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), wasm, authority, opts...)
+	return NewKeeperX(cdc, storeKey, memoryStoreKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), wasm, slash, authority, opts...)
 }
 
 // NewKeeperX constructor with extended Osmosis SDK keepers
@@ -56,6 +58,7 @@ func NewKeeperX(
 	bank types.XBankKeeper,
 	staking types.XStakingKeeper,
 	wasm types.WasmKeeper,
+	slash types.SlashingKeeper,
 	authority string,
 	opts ...Option,
 ) *Keeper {
@@ -66,6 +69,7 @@ func NewKeeperX(
 		bank:      bank,
 		Staking:   staking,
 		wasm:      wasm,
+		Slashing:  slash,
 		authority: authority,
 	}
 	for _, o := range opts {

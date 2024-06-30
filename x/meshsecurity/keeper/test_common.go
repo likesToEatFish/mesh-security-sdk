@@ -276,6 +276,7 @@ func CreateDefaultTestInput(t testing.TB, opts ...Option) (sdk.Context, TestKeep
 		bankKeeper,
 		stakingKeeper,
 		wasmKeeper,
+		slashingKeeper,
 		authority,
 		opts...,
 	)
@@ -308,14 +309,6 @@ func FetchAllStoredOperations(t *testing.T, ctx sdk.Context, msKeeper *Keeper) m
 	})
 	require.NoError(t, err)
 	return index
-}
-
-// for test code only
-func must[t any](s t, err error) t {
-	if err != nil {
-		panic(err)
-	}
-	return s
 }
 
 // MinValidatorFixture creates minimal sdk validator object

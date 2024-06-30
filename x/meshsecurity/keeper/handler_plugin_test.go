@@ -161,7 +161,7 @@ func captureDelegateCall(t *testing.T, myContractAddr, myDelegatorAddr sdk.AccAd
 	}, asserts
 }
 
-func captureCall(t *testing.T, myContractAddr, myDelegatorAddr sdk.AccAddress, myValidatorAddr sdk.ValAddress, expCoin sdk.Coin) (func(_ sdk.Context, actor, del sdk.AccAddress, val sdk.ValAddress, coin sdk.Coin) error, func()) {
+func captureCall(t *testing.T, myContractAddr, _ sdk.AccAddress, myValidatorAddr sdk.ValAddress, expCoin sdk.Coin) (func(_ sdk.Context, actor, del sdk.AccAddress, val sdk.ValAddress, coin sdk.Coin) error, func()) {
 	var (
 		captureVal     sdk.ValAddress
 		capturedAmount sdk.Coin

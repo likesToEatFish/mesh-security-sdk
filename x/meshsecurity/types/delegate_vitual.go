@@ -1,10 +1,11 @@
 package types
 
 import (
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func NewDelegationVirtual(deAdd string, actor string, valAdd string, amount sdk.Int) DelegationVirtual {
+func NewDelegationVirtual(deAdd string, actor string, valAdd string, amount math.Int) DelegationVirtual {
 	return DelegationVirtual{
 		DelegatorAddress: deAdd,
 		ValidatorAddress: valAdd,

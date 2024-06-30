@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"time"
+
 	"cosmossdk.io/math"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 
@@ -10,8 +12,6 @@ import (
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
-
-	outmessage "github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/contract"
 )
 
 // ScheduleBonded store a validator update to bonded status for the valset update report
@@ -25,14 +25,21 @@ func (k Keeper) ScheduleUnbonded(ctx sdk.Context, addr sdk.ValAddress) error {
 }
 
 // ScheduleSlashed store a validator slash event / data for the valset update report
-func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int64, height int64, totalSlashAmount math.Int, slashRatio sdk.Dec) error {
-	var slashInfo = &types.SlashInfo{
+func (k Keeper) ScheduleSlashed(ctx sdk.Context, infraction types.SlashInfo, totalSlashAmount math.Int, slashRatio sdk.Dec) error {
+	consAddr := infraction.GetConsensusAddress()
+	power := infraction.GetPower()
+	height := infraction.GetHeight()
+	timeInfraction := infraction.GetTime()
+	val := k.Staking.ValidatorByConsAddr(ctx, consAddr)
+
+	slashInfo := &types.SlashInfo{
 		Power:            power,
 		InfractionHeight: height,
 		TotalSlashAmount: totalSlashAmount.String(),
 		SlashFraction:    slashRatio.String(),
+		TimeInfraction:   timeInfraction,
 	}
-	return k.sendAsync(ctx, types.ValidatorSlashed, addr, slashInfo)
+	return k.sendAsync(ctx, types.ValidatorSlashed, val.GetOperator(), slashInfo)
 }
 
 // ScheduleJailed store a validator update to jailed status for the valset update report
@@ -60,6 +67,7 @@ func (k Keeper) ScheduleModified(ctx sdk.Context, addr sdk.ValAddress) error {
 func (k Keeper) sendAsync(ctx sdk.Context, op types.PipedValsetOperation, valAddr sdk.ValAddress, slashInfo *types.SlashInfo) error {
 	ModuleLogger(ctx).Debug("storing for async update", "operation", int(op), "val", valAddr.String())
 	ctx.KVStore(k.memKey).Set(types.BuildPipedValsetOpKey(op, valAddr, slashInfo), []byte{})
+
 	// and schedule an update callback for all registered contracts
 	var innerErr error
 	k.IterateMaxCapLimit(ctx, func(contractAddr sdk.AccAddress, m math.Int) bool {
@@ -88,9 +96,10 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		*set = append(*set, ConvertSdkValidatorToWasm(val))
 		return false
 	}
-	slashValidator := func(set *[]outmessage.ValidatorSlash, valAddr sdk.ValAddress, power int64, infractionHeight int64,
-		infractionTime int64, slashAmount string, slashRatio string) bool {
-		valSlash := outmessage.ValidatorSlash{
+	slashValidator := func(set *[]contract.ValidatorSlash, valAddr sdk.ValAddress, power int64, infractionHeight int64,
+		infractionTime int64, slashAmount string, slashRatio string,
+	) bool {
+		valSlash := contract.ValidatorSlash{
 			ValidatorAddr:    valAddr.String(),
 			Power:            power,
 			InfractionHeight: infractionHeight,
@@ -127,8 +136,7 @@ func (k Keeper) ValsetUpdateReport(ctx sdk.Context) (contract.ValsetUpdate, erro
 		case types.ValidatorModified:
 			return appendValidator(&r.Updated, valAddr)
 		case types.ValidatorSlashed:
-			// TODO: Add / send the infraction time
-			return slashValidator(&r.Slashed, valAddr, slashInfo.Power, slashInfo.InfractionHeight, 0,
+			return slashValidator(&r.Slashed, valAddr, slashInfo.Power, slashInfo.InfractionHeight, slashInfo.TimeInfraction.Unix(),
 				slashInfo.TotalSlashAmount, slashInfo.SlashFraction)
 		default:
 			innerErr = types.ErrInvalid.Wrapf("undefined operation type %X", op)
@@ -170,11 +178,13 @@ func (k Keeper) iteratePipedValsetOperations(ctx sdk.Context, cb func(valAddress
 				return types.ErrInvalid.Wrapf("invalid slash key length %d", len(key))
 			}
 			totalSlashAmountLen := key[addrLen+2+8+8]
+			slashFractionLen := key[addrLen+2+8+8+1+totalSlashAmountLen]
 			slashInfo = &types.SlashInfo{
-				Power:            int64(sdk.BigEndianToUint64(key[addrLen+2 : addrLen+2+8])),
-				InfractionHeight: int64(sdk.BigEndianToUint64(key[addrLen+2+8 : addrLen+2+8+8])),
+				InfractionHeight: int64(sdk.BigEndianToUint64(key[addrLen+2 : addrLen+2+8])),
+				Power:            int64(sdk.BigEndianToUint64(key[addrLen+2+8 : addrLen+2+8+8])),
 				TotalSlashAmount: string(key[addrLen+2+8+8+1 : addrLen+2+8+8+1+totalSlashAmountLen]),
-				SlashFraction:    string(key[addrLen+2+8+8+1+totalSlashAmountLen:]),
+				SlashFraction:    string(key[addrLen+2+8+8+1+totalSlashAmountLen+1 : addrLen+2+8+8+1+totalSlashAmountLen+1+slashFractionLen]),
+				TimeInfraction:   time.Unix(int64(sdk.BigEndianToUint64(key[addrLen+2+8+8+1+totalSlashAmountLen+1+slashFractionLen:addrLen+2+8+8+1+totalSlashAmountLen+1+slashFractionLen+8])), 0),
 			}
 		}
 		if cb(addr, types.PipedValsetOperation(op), slashInfo) {

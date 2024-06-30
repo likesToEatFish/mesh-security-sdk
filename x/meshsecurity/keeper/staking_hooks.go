@@ -30,6 +30,8 @@ func (h Hooks) AfterValidatorBeginUnbonding(ctx sdk.Context, _ sdk.ConsAddress, 
 
 func (h Hooks) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) error {
 	return nil
+
+	// h.k.S
 }
 
 func (h Hooks) AfterUnbondingInitiated(ctx sdk.Context, id uint64) error {

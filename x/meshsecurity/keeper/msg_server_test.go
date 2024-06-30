@@ -117,7 +117,7 @@ func TestSetVirtualStakingMaxCap(t *testing.T) {
 			spec.setup(ctx)
 
 			// when
-			gotRsp, gotErr := m.SetVirtualStakingMaxCap(sdk.WrapSDKContext(ctx), &spec.src)
+			gotRsp, gotErr := m.SetVirtualStakingMaxCap(sdk.WrapSDKContext(ctx), &spec.src) // #nosec
 
 			// then
 			if spec.expErr {

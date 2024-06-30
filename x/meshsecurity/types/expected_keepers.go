@@ -5,6 +5,7 @@ import (
 
 	"cosmossdk.io/math"
 
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -26,6 +27,7 @@ type XBankKeeper interface {
 
 // SDKStakingKeeper expected staking keeper.
 type SDKStakingKeeper interface {
+	ValidatorByConsAddr(sdk.Context, sdk.ConsAddress) stakingtypes.ValidatorI
 	BondDenom(ctx sdk.Context) string
 	GetAllValidators(ctx sdk.Context) (validators []stakingtypes.Validator)
 	GetValidator(ctx sdk.Context, addr sdk.ValAddress) (validator stakingtypes.Validator, found bool)
@@ -39,6 +41,11 @@ type SDKStakingKeeper interface {
 	TotalBondedTokens(ctx sdk.Context) math.Int
 	IterateDelegations(ctx sdk.Context, delegator sdk.AccAddress, fn func(int64, stakingtypes.DelegationI) bool)
 	GetValidatorByConsAddr(ctx sdk.Context, consAddr sdk.ConsAddress) (stakingtypes.Validator, bool)
+	// slash the validator and delegators of the validator, specifying offence height, offence power, and slash fraction
+	Slash(sdk.Context, sdk.ConsAddress, int64, int64, sdk.Dec) math.Int
+	SlashWithInfractionReason(sdk.Context, sdk.ConsAddress, int64, int64, sdk.Dec, stakingtypes.Infraction) math.Int
+	Jail(sdk.Context, sdk.ConsAddress)   // jail a validator
+	Unjail(sdk.Context, sdk.ConsAddress) // unjail a validator
 }
 
 type XStakingKeeper interface {
@@ -61,4 +68,17 @@ type AccountKeeper interface {
 type WasmKeeper interface {
 	Sudo(ctx sdk.Context, contractAddress sdk.AccAddress, msg []byte) ([]byte, error)
 	HasContractInfo(ctx sdk.Context, contractAddress sdk.AccAddress) bool
+}
+
+type SlashingKeeper interface {
+	GetPubkey(sdk.Context, cryptotypes.Address) (cryptotypes.PubKey, error)
+	IsTombstoned(sdk.Context, sdk.ConsAddress) bool
+	HasValidatorSigningInfo(sdk.Context, sdk.ConsAddress) bool
+	Tombstone(sdk.Context, sdk.ConsAddress)
+	Slash(sdk.Context, sdk.ConsAddress, sdk.Dec, int64, int64)
+	SlashWithInfractionReason(sdk.Context, sdk.ConsAddress, sdk.Dec, int64, int64, stakingtypes.Infraction)
+	SlashFractionDoubleSign(sdk.Context) sdk.Dec
+	SlashFractionDowntime(sdk.Context) sdk.Dec
+	Jail(sdk.Context, sdk.ConsAddress)
+	JailUntil(sdk.Context, sdk.ConsAddress, time.Time)
 }

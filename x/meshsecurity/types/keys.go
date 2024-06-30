@@ -49,13 +49,6 @@ const (
 	ValidatorSlashed
 )
 
-type SlashInfo struct {
-	InfractionHeight int64
-	Power            int64
-	TotalSlashAmount string
-	SlashFraction    string
-}
-
 // BuildMaxCapLimitKey build max cap limit store key
 func BuildMaxCapLimitKey(contractAddr sdk.AccAddress) []byte {
 	return append(MaxCapLimitKeyPrefix, contractAddr.Bytes()...)
@@ -103,34 +96,48 @@ func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress, slashInf
 		if slashInfo == nil {
 			panic("slash info is nil")
 		}
-		sn = 8 + 8 + 1 + len(slashInfo.TotalSlashAmount) + len(slashInfo.SlashFraction) // 8 for height, 8 for power, +1 for total amount length
+		// Calculate the length of the slash information part of the key
+		sn = 8 + 8 + 1 + len(slashInfo.TotalSlashAmount) + 1 + len(slashInfo.SlashFraction) + 8 // 8 for height, 8 for power, +1 for total amount length,+1 for slash length, +8 for time
 	}
+	// Create a byte slice with the total length required for the key
 	r := make([]byte, pn+an+sn+1+1) // +1 for address prefix, +1 for op
+	// Copy the prefix into the byte slice
 	copy(r, PipedValsetPrefix)
+	// Copy the length-prefixed validator address into the byte slice
 	copy(r[pn:], address.MustLengthPrefix(val))
+	// Set the operation byte in the byte slice
 	r[pn+an+1] = byte(op)
 	if op == ValidatorSlashed {
+		// If the operation is a slash, include additional slash information
 		b := make([]byte, 8)
 		binary.BigEndian.PutUint64(b, uint64(slashInfo.InfractionHeight))
 		copy(r[pn+an+1+1:], b)
 		binary.BigEndian.PutUint64(b, uint64(slashInfo.Power))
 		copy(r[pn+an+1+1+8:], b)
+
 		tn := len(slashInfo.TotalSlashAmount)
 		r[pn+an+1+1+8+8] = byte(tn)
 		copy(r[pn+an+1+1+8+8+1:], slashInfo.TotalSlashAmount)
-		copy(r[pn+an+1+1+8+8+1+tn:], slashInfo.SlashFraction)
+
+		sn := len(slashInfo.SlashFraction)
+		r[pn+an+1+1+8+8+1+tn] = byte(sn)
+		copy(r[pn+an+1+1+8+8+1+tn+1:], slashInfo.SlashFraction)
+
+		timeUnix := slashInfo.TimeInfraction.Unix()
+		binary.BigEndian.PutUint64(b, uint64(timeUnix))
+		copy(r[pn+an+1+1+8+8+1+tn+1+sn:], b)
 	}
 	return r
 }
 
 // BuildDelegationsKey build the delegations's prefix for a contract
 func BuildDelegationsKey(actor sdk.AccAddress) []byte {
-    return append(DelegationKey, address.MustLengthPrefix(actor)...)
+	return append(DelegationKey, address.MustLengthPrefix(actor)...)
 }
 
 // BuildDelegationKey build the prefix for a delegator bond with validator
 func BuildDelegationKey(actor, delAddr sdk.AccAddress, valAddr sdk.ValAddress) []byte {
-    key := append(BuildDelegationsKey(actor), address.MustLengthPrefix(delAddr)...)
+	key := append(BuildDelegationsKey(actor), address.MustLengthPrefix(delAddr)...)
 	key = append(key, address.MustLengthPrefix(valAddr)...)
 	return key
 }

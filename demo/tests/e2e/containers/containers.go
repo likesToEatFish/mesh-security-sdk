@@ -349,7 +349,7 @@ func (m *Manager) RunNodeResource(containerName, valCondifDir string) (*dockerte
 		User:       "root:root",
 		Cmd:        []string{"start"},
 		Mounts: []string{
-			fmt.Sprintf("%s/:/mesh/.mesh", valCondifDir),
+			fmt.Sprintf("%s/:/mesh/.meshd", valCondifDir),
 			fmt.Sprintf("%s/scripts:/mesh", pwd),
 		},
 	}

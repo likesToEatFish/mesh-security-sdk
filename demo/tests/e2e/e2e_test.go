@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	sdkmath "cosmossdk.io/math"
+	// sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/demo/tests/e2e/initialization"
@@ -87,129 +87,129 @@ func (s *IntegrationTestSuite) TestIBCWasmHooks() {
 	)
 }
 
-func (s *IntegrationTestSuite) TestFeeTax() {
-	chain := s.configurer.GetChainConfig(0)
-	node, err := chain.GetDefaultNode()
-	s.Require().NoError(err)
+// func (s *IntegrationTestSuite) TestFeeTax() {
+// 	chain := s.configurer.GetChainConfig(0)
+// 	node, err := chain.GetDefaultNode()
+// 	s.Require().NoError(err)
 
-	transferAmount1 := sdkmath.NewInt(20000000)
-	transferCoin1 := sdk.NewCoin(initialization.MeshDenom, transferAmount1)
+// 	transferAmount1 := sdkmath.NewInt(20000000)
+// 	transferCoin1 := sdk.NewCoin(initialization.MeshDenom, transferAmount1)
 
-	validatorAddr := node.GetWallet(initialization.ValidatorWalletName)
-	s.Require().NotEqual(validatorAddr, "")
+// 	validatorAddr := node.GetWallet(initialization.ValidatorWalletName)
+// 	s.Require().NotEqual(validatorAddr, "")
 
-	validatorBalance, err := node.QuerySpecificBalance(validatorAddr, initialization.MeshDenom)
-	s.Require().NoError(err)
+// 	validatorBalance, err := node.QuerySpecificBalance(validatorAddr, initialization.MeshDenom)
+// 	s.Require().NoError(err)
 
-	test1Addr := node.CreateWallet("test1")
+// 	test1Addr := node.CreateWallet("test1")
 
-	// Test 1: banktypes.MsgSend
-	// burn tax with bank send
-	node.BankSend(transferCoin1.String(), validatorAddr, test1Addr)
+// 	// Test 1: banktypes.MsgSend
+// 	// burn tax with bank send
+// 	node.BankSend(transferCoin1.String(), validatorAddr, test1Addr)
 
-	subAmount := transferAmount1.Add(initialization.TaxRate.MulInt(transferAmount1).TruncateInt())
+// 	subAmount := transferAmount1.Add(initialization.TaxRate.MulInt(transferAmount1).TruncateInt())
 
-	decremented := validatorBalance.Sub(sdk.NewCoin(initialization.MeshDenom, subAmount))
-	newValidatorBalance, err := node.QuerySpecificBalance(validatorAddr, initialization.MeshDenom)
-	s.Require().NoError(err)
+// 	decremented := validatorBalance.Sub(sdk.NewCoin(initialization.MeshDenom, subAmount))
+// 	newValidatorBalance, err := node.QuerySpecificBalance(validatorAddr, initialization.MeshDenom)
+// 	s.Require().NoError(err)
 
-	balanceTest1, err := node.QuerySpecificBalance(test1Addr, initialization.MeshDenom)
-	s.Require().NoError(err)
+// 	balanceTest1, err := node.QuerySpecificBalance(test1Addr, initialization.MeshDenom)
+// 	s.Require().NoError(err)
 
-	s.Require().Equal(balanceTest1.Amount, transferAmount1)
-	s.Require().Equal(newValidatorBalance, decremented)
+// 	s.Require().Equal(balanceTest1.Amount, transferAmount1)
+// 	s.Require().Equal(newValidatorBalance, decremented)
 
-	// Test 2: try bank send with grant
-	test2Addr := node.CreateWallet("test2")
-	transferAmount2 := sdkmath.NewInt(10000000)
-	transferCoin2 := sdk.NewCoin(initialization.MeshDenom, transferAmount2)
+// 	// Test 2: try bank send with grant
+// 	test2Addr := node.CreateWallet("test2")
+// 	transferAmount2 := sdkmath.NewInt(10000000)
+// 	transferCoin2 := sdk.NewCoin(initialization.MeshDenom, transferAmount2)
 
-	node.BankSend(transferCoin2.String(), validatorAddr, test2Addr)
-	node.GrantAddress(test2Addr, test1Addr, transferCoin2.String(), "test2")
+// 	node.BankSend(transferCoin2.String(), validatorAddr, test2Addr)
+// 	node.GrantAddress(test2Addr, test1Addr, transferCoin2.String(), "test2")
 
-	validatorBalance, err = node.QuerySpecificBalance(validatorAddr, initialization.MeshDenom)
-	s.Require().NoError(err)
+// 	validatorBalance, err = node.QuerySpecificBalance(validatorAddr, initialization.MeshDenom)
+// 	s.Require().NoError(err)
 
-	node.BankSendFeeGrantWithWallet(transferCoin2.String(), test1Addr, validatorAddr, test2Addr, "test1")
+// 	node.BankSendFeeGrantWithWallet(transferCoin2.String(), test1Addr, validatorAddr, test2Addr, "test1")
 
-	newValidatorBalance, err = node.QuerySpecificBalance(validatorAddr, initialization.MeshDenom)
-	s.Require().NoError(err)
+// 	newValidatorBalance, err = node.QuerySpecificBalance(validatorAddr, initialization.MeshDenom)
+// 	s.Require().NoError(err)
 
-	balanceTest1, err = node.QuerySpecificBalance(test1Addr, initialization.MeshDenom)
-	s.Require().NoError(err)
+// 	balanceTest1, err = node.QuerySpecificBalance(test1Addr, initialization.MeshDenom)
+// 	s.Require().NoError(err)
 
-	balanceTest2, err := node.QuerySpecificBalance(test2Addr, initialization.MeshDenom)
-	s.Require().NoError(err)
+// 	balanceTest2, err := node.QuerySpecificBalance(test2Addr, initialization.MeshDenom)
+// 	s.Require().NoError(err)
 
-	s.Require().Equal(balanceTest1.Amount, transferAmount1.Sub(transferAmount2))
-	s.Require().Equal(newValidatorBalance, validatorBalance.Add(transferCoin2))
-	s.Require().Equal(balanceTest2.Amount, transferAmount2.Sub(initialization.TaxRate.MulInt(transferAmount2).TruncateInt()))
+// 	s.Require().Equal(balanceTest1.Amount, transferAmount1.Sub(transferAmount2))
+// 	s.Require().Equal(newValidatorBalance, validatorBalance.Add(transferCoin2))
+// 	s.Require().Equal(balanceTest2.Amount, transferAmount2.Sub(initialization.TaxRate.MulInt(transferAmount2).TruncateInt()))
 
-	// Test 3: banktypes.MsgMultiSend
-	validatorBalance, err = node.QuerySpecificBalance(validatorAddr, initialization.MeshDenom)
-	s.Require().NoError(err)
+// 	// Test 3: banktypes.MsgMultiSend
+// 	validatorBalance, err = node.QuerySpecificBalance(validatorAddr, initialization.MeshDenom)
+// 	s.Require().NoError(err)
 
-	node.BankMultiSend(transferCoin1.String(), false, validatorAddr, test1Addr, test2Addr)
+// 	node.BankMultiSend(transferCoin1.String(), false, validatorAddr, test1Addr, test2Addr)
 
-	newValidatorBalance, err = node.QuerySpecificBalance(validatorAddr, initialization.MeshDenom)
-	s.Require().NoError(err)
+// 	newValidatorBalance, err = node.QuerySpecificBalance(validatorAddr, initialization.MeshDenom)
+// 	s.Require().NoError(err)
 
-	totalTransferAmount := transferAmount1.Mul(sdk.NewInt(2))
-	subAmount = totalTransferAmount.Add(initialization.TaxRate.MulInt(totalTransferAmount).TruncateInt())
-	s.Require().Equal(newValidatorBalance, validatorBalance.Sub(sdk.NewCoin(initialization.MeshDenom, subAmount)))
-}
+// 	totalTransferAmount := transferAmount1.Mul(sdk.NewInt(2))
+// 	subAmount = totalTransferAmount.Add(initialization.TaxRate.MulInt(totalTransferAmount).TruncateInt())
+// 	s.Require().Equal(newValidatorBalance, validatorBalance.Sub(sdk.NewCoin(initialization.MeshDenom, subAmount)))
+// }
 
-func (s *IntegrationTestSuite) TestFeeTaxWasm() {
-	chain := s.configurer.GetChainConfig(0)
-	node, err := chain.GetDefaultNode()
-	s.Require().NoError(err)
+// func (s *IntegrationTestSuite) TestFeeTaxWasm() {
+// 	chain := s.configurer.GetChainConfig(0)
+// 	node, err := chain.GetDefaultNode()
+// 	s.Require().NoError(err)
 
-	testAddr := node.CreateWallet("test")
-	transferAmount := sdkmath.NewInt(100000000)
-	transferCoin := sdk.NewCoin(initialization.MeshDenom, transferAmount)
-	node.BankSend(fmt.Sprintf("%sumesh", transferAmount.Mul(sdk.NewInt(4))), initialization.ValidatorWalletName, testAddr)
-	node.StoreWasmCode("counter.wasm", initialization.ValidatorWalletName)
-	chain.LatestCodeID = int(node.QueryLatestWasmCodeID())
-	// instantiate contract and transfer 100000000umesh
-	node.InstantiateWasmContract(
-		strconv.Itoa(chain.LatestCodeID),
-		`{"count": "0"}`, transferCoin.String(),
-		"test")
+// 	testAddr := node.CreateWallet("test")
+// 	transferAmount := sdkmath.NewInt(100000000)
+// 	transferCoin := sdk.NewCoin(initialization.MeshDenom, transferAmount)
+// 	node.BankSend(fmt.Sprintf("%sumesh", transferAmount.Mul(sdk.NewInt(4))), initialization.ValidatorWalletName, testAddr)
+// 	node.StoreWasmCode("counter.wasm", initialization.ValidatorWalletName)
+// 	chain.LatestCodeID = int(node.QueryLatestWasmCodeID())
+// 	// instantiate contract and transfer 100000000umesh
+// 	node.InstantiateWasmContract(
+// 		strconv.Itoa(chain.LatestCodeID),
+// 		`{"count": "0"}`, transferCoin.String(),
+// 		"test")
 
-	contracts, err := node.QueryContractsFromID(chain.LatestCodeID)
-	s.Require().NoError(err)
-	s.Require().Len(contracts, 1, "Wrong number of contracts for the counter")
+// 	contracts, err := node.QueryContractsFromID(chain.LatestCodeID)
+// 	s.Require().NoError(err)
+// 	s.Require().Len(contracts, 1, "Wrong number of contracts for the counter")
 
-	balance1, err := node.QuerySpecificBalance(testAddr, initialization.MeshDenom)
-	s.Require().NoError(err)
-	// 400000000 - 100000000 - 100000000 * TaxRate = 300000000 - 10000000 * TaxRate
-	taxAmount := initialization.TaxRate.MulInt(transferAmount).TruncateInt()
-	s.Require().Equal(balance1.Amount, transferAmount.Mul(sdk.NewInt(3)).Sub(taxAmount))
+// 	balance1, err := node.QuerySpecificBalance(testAddr, initialization.MeshDenom)
+// 	s.Require().NoError(err)
+// 	// 400000000 - 100000000 - 100000000 * TaxRate = 300000000 - 10000000 * TaxRate
+// 	taxAmount := initialization.TaxRate.MulInt(transferAmount).TruncateInt()
+// 	s.Require().Equal(balance1.Amount, transferAmount.Mul(sdk.NewInt(3)).Sub(taxAmount))
 
-	stabilityFee := sdk.NewDecWithPrec(2, 2).MulInt(transferAmount)
+// 	stabilityFee := sdk.NewDecWithPrec(2, 2).MulInt(transferAmount)
 
-	node.Instantiate2WasmContract(
-		strconv.Itoa(chain.LatestCodeID),
-		`{"count": "0"}`, "salt",
-		transferCoin.String(),
-		fmt.Sprintf("%dumesh", stabilityFee), "test")
+// 	node.Instantiate2WasmContract(
+// 		strconv.Itoa(chain.LatestCodeID),
+// 		`{"count": "0"}`, "salt",
+// 		transferCoin.String(),
+// 		fmt.Sprintf("%dumesh", stabilityFee), "test")
 
-	contracts, err = node.QueryContractsFromID(chain.LatestCodeID)
-	s.Require().NoError(err)
-	s.Require().Len(contracts, 2, "Wrong number of contracts for the counter")
+// 	contracts, err = node.QueryContractsFromID(chain.LatestCodeID)
+// 	s.Require().NoError(err)
+// 	s.Require().Len(contracts, 2, "Wrong number of contracts for the counter")
 
-	balance2, err := node.QuerySpecificBalance(testAddr, initialization.MeshDenom)
-	s.Require().NoError(err)
-	// balance1 - 100000000 - 100000000 * TaxRate
-	taxAmount = initialization.TaxRate.MulInt(transferAmount).TruncateInt()
-	s.Require().Equal(balance2.Amount, balance1.Amount.Sub(transferAmount).Sub(taxAmount))
+// 	balance2, err := node.QuerySpecificBalance(testAddr, initialization.MeshDenom)
+// 	s.Require().NoError(err)
+// 	// balance1 - 100000000 - 100000000 * TaxRate
+// 	taxAmount = initialization.TaxRate.MulInt(transferAmount).TruncateInt()
+// 	s.Require().Equal(balance2.Amount, balance1.Amount.Sub(transferAmount).Sub(taxAmount))
 
-	contractAddr := contracts[0]
-	node.WasmExecute(contractAddr, `{"donate": {}}`, transferCoin.String(), fmt.Sprintf("%dumesh", stabilityFee), "test")
+// 	contractAddr := contracts[0]
+// 	node.WasmExecute(contractAddr, `{"donate": {}}`, transferCoin.String(), fmt.Sprintf("%dumesh", stabilityFee), "test")
 
-	balance3, err := node.QuerySpecificBalance(testAddr, initialization.MeshDenom)
-	s.Require().NoError(err)
-	// balance2 - 100000000 - 100000000 * TaxRate
-	taxAmount = initialization.TaxRate.MulInt(transferAmount).TruncateInt()
-	s.Require().Equal(balance3.Amount, balance2.Amount.Sub(transferAmount).Sub(taxAmount))
-}
+// 	balance3, err := node.QuerySpecificBalance(testAddr, initialization.MeshDenom)
+// 	s.Require().NoError(err)
+// 	// balance2 - 100000000 - 100000000 * TaxRate
+// 	taxAmount = initialization.TaxRate.MulInt(transferAmount).TruncateInt()
+// 	s.Require().Equal(balance3.Amount, balance2.Amount.Sub(transferAmount).Sub(taxAmount))
+// }

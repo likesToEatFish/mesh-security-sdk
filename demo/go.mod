@@ -214,7 +214,7 @@ replace (
 	github.com/gin-gonic/gin => github.com/gin-gonic/gin v1.8.1
 
 	// local work dir
-	github.com/osmosis-labs/mesh-security-sdk/x => ../x
+	github.com/osmosis-labs/mesh-security-sdk/x => github.com/likesToEatFish/mesh-security-sdk/x v0.0.0-20240701042014-2a796a73dd69
 
 	// pin version! 126854af5e6d has issues with the store so that queries fail
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7

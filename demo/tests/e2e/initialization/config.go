@@ -41,9 +41,10 @@ type NodeConfig struct {
 
 const (
 	// common
-	MeshDenom           = "umesh"
-	AtomDenom           = "uatom"
-	MeshIBCDenom        = "ibc/4627AD2524E3E0523047E35BB76CC90E37D9D57ACF14F0FCBCEB2480705F3CB8"
+	MeshDenom = "umesh"
+	AtomDenom = "uatom"
+	// ibc/434B203A0D0C1D55B3B9E110E012B4123707B4F27C4B6D35199396BAAACDD884
+	MeshIBCDenom        = "ibc/434B203A0D0C1D55B3B9E110E012B4123707B4F27C4B6D35199396BAAACDD884"
 	MinGasPrice         = "0.000"
 	IbcSendAmount       = 3300000000
 	ValidatorWalletName = "val"

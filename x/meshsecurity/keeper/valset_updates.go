@@ -26,7 +26,11 @@ func (k Keeper) ScheduleUnbonded(ctx sdk.Context, addr sdk.ValAddress) error {
 }
 
 // ScheduleSlashed store a validator slash event / data for the valset update report
-func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int64, height int64, totalSlashAmount math.Int, slashRatio sdk.Dec, timeInfraction time.Time) error {
+func (k Keeper) ScheduleSlashed(ctx sdk.Context, infraction types.SlashInfo, valAddr sdk.ValAddress, totalSlashAmount math.Int, slashRatio sdk.Dec) error {
+	power := infraction.GetPower()
+	height := infraction.GetHeight()
+	timeInfraction := infraction.GetTime()
+
 	var slashInfo = &types.SlashInfo{
 		Power:            power,
 		InfractionHeight: height,
@@ -34,7 +38,7 @@ func (k Keeper) ScheduleSlashed(ctx sdk.Context, addr sdk.ValAddress, power int6
 		SlashFraction:    slashRatio.String(),
 		TimeInfraction:   timeInfraction,
 	}
-	return k.sendAsync(ctx, types.ValidatorSlashed, addr, slashInfo)
+	return k.sendAsync(ctx, types.ValidatorSlashed, valAddr, slashInfo)
 }
 
 // ScheduleJailed store a validator update to jailed status for the valset update report

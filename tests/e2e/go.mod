@@ -34,9 +34,14 @@ require (
 require (
 	cosmossdk.io/math v1.1.2
 	github.com/cometbft/cometbft v0.37.2
+	// github.com/osmosis-labs/mesh-security-sdk/demo v0.0.0-00010101000000-000000000000
+	// github.com/osmosis-labs/mesh-security-sdk/x v0.0.0-00010101000000-000000000000
+	github.com/tidwall/gjson v1.17.0
+)
+
+require (
 	github.com/osmosis-labs/mesh-security-sdk/demo v0.0.0-00010101000000-000000000000
 	github.com/osmosis-labs/mesh-security-sdk/x v0.0.0-00010101000000-000000000000
-	github.com/tidwall/gjson v1.17.0
 )
 
 require (

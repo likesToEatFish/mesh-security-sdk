@@ -29,6 +29,7 @@ type Keeper struct {
 	bank     types.XBankKeeper
 	Staking  types.XStakingKeeper
 	wasm     types.WasmKeeper
+	Slashing types.SlashingKeeper
 	// the address capable of executing a MsgUpdateParams message. Typically, this
 	// should be the x/gov module account.
 	authority string
@@ -42,10 +43,11 @@ func NewKeeper(
 	bank types.SDKBankKeeper,
 	staking types.SDKStakingKeeper,
 	wasm types.WasmKeeper,
+	slash types.SlashingKeeper,
 	authority string,
 	opts ...Option,
 ) *Keeper {
-	return NewKeeperX(cdc, storeKey, memoryStoreKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), wasm, authority, opts...)
+	return NewKeeperX(cdc, storeKey, memoryStoreKey, NewBankKeeperAdapter(bank), NewStakingKeeperAdapter(staking, bank), wasm, slash, authority, opts...)
 }
 
 // NewKeeperX constructor with extended Osmosis SDK keepers
@@ -56,6 +58,7 @@ func NewKeeperX(
 	bank types.XBankKeeper,
 	staking types.XStakingKeeper,
 	wasm types.WasmKeeper,
+	slashing types.SlashingKeeper,
 	authority string,
 	opts ...Option,
 ) *Keeper {
@@ -66,6 +69,7 @@ func NewKeeperX(
 		bank:      bank,
 		Staking:   staking,
 		wasm:      wasm,
+		Slashing:  slashing,
 		authority: authority,
 	}
 	for _, o := range opts {
@@ -147,6 +151,30 @@ func (k Keeper) setTotalDelegated(ctx sdk.Context, actor sdk.AccAddress, newAmou
 	store.Set(types.BuildTotalDelegatedAmountKey(actor), bz)
 }
 
+func (k Keeper) setDelegateVirtual(ctx sdk.Context, actor sdk.AccAddress, val sdk.ValAddress) {
+	store := ctx.KVStore(k.storeKey)
+	store.Set(types.BuildDelegateVirtualKey(actor), val)
+}
+
+func (k Keeper) deleteDelegateVirtual(ctx sdk.Context, actor sdk.AccAddress) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(types.BuildDelegateVirtualKey(actor))
+}
+
+func (k Keeper) iterateDelegateVirtual(ctx sdk.Context, cb func(sdk.AccAddress, sdk.ValAddress) bool) {
+	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), types.DelegateVirtual)
+	iter := prefixStore.Iterator(nil, nil)
+	defer iter.Close()
+
+	for ; iter.Valid(); iter.Next() {
+		// cb returns true to stop early
+		if cb(iter.Key(), iter.Value()) {
+			return
+		}
+	}
+
+}
+
 // helper to deserialize a math.Int from store. Returns zero when key does not exist.
 // Panics when Unmarshal fails
 func (k Keeper) mustLoadInt(ctx sdk.Context, storeKey storetypes.StoreKey, key []byte) math.Int {
@@ -160,6 +188,17 @@ func (k Keeper) mustLoadInt(ctx sdk.Context, storeKey storetypes.StoreKey, key [
 		panic(err)
 	}
 	return r
+}
+
+// GetAllActors return all contract address
+func (k Keeper) GetAllActors(ctx sdk.Context) []sdk.AccAddress {
+	actors := []sdk.AccAddress{}
+
+	k.IterateMaxCapLimit(ctx, func(contractAddr sdk.AccAddress, _ math.Int) bool {
+		actors = append(actors, contractAddr)
+		return false
+	})
+	return actors
 }
 
 // IterateMaxCapLimit iterate over contract addresses with max cap limit set

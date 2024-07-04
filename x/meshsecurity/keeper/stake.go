@@ -59,7 +59,9 @@ func (k Keeper) Delegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.Val
 	)
 
 	// and update our records
+
 	k.setTotalDelegated(cacheCtx, actor, newTotalDelegatedAmount)
+	k.setDelegateVirtual(cacheCtx, actor, valAddr)
 	done()
 	return newShares, err
 }
@@ -109,6 +111,7 @@ func (k Keeper) Undelegate(pCtx sdk.Context, actor sdk.AccAddress, valAddr sdk.V
 	newDelegatedAmt := totalDelegatedAmount.Sub(unbondedAmount)
 	if newDelegatedAmt.IsNegative() {
 		newDelegatedAmt = sdk.NewCoin(bondDenom, math.ZeroInt())
+		k.deleteDelegateVirtual(cacheCtx, actor)
 	}
 	k.setTotalDelegated(cacheCtx, actor, newDelegatedAmt)
 

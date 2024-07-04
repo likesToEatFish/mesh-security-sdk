@@ -407,6 +407,14 @@ func NewMeshApp(
 	// setup mesh-security keeper with vanilla Cosmos-SDK
 	// see also NewKeeperX constructor for integration with Osmosis SDK fork
 	// should be initialized before wasm keeper for custom query/msg handlers
+	app.SlashingKeeper = slashingkeeper.NewKeeper(
+		appCodec,
+		legacyAmino,
+		keys[slashingtypes.StoreKey],
+		// decorate the sdk keeper to capture all jail/ unjail events for MS
+		app.StakingKeeper,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	)
 	app.MeshSecKeeper = meshseckeeper.NewKeeper(
 		app.appCodec,
 		keys[meshsectypes.StoreKey],
@@ -414,17 +422,18 @@ func NewMeshApp(
 		app.BankKeeper,
 		app.StakingKeeper,
 		&app.WasmKeeper, // ensure this is a pointer as we instantiate the keeper a bit later
+		app.SlashingKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
-	app.SlashingKeeper = slashingkeeper.NewKeeper(
-		appCodec,
-		legacyAmino,
-		keys[slashingtypes.StoreKey],
-		// decorate the sdk keeper to capture all jail/ unjail events for MS
-		meshseckeeper.NewStakingDecorator(app.StakingKeeper, app.MeshSecKeeper),
-		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
-	)
+	// app.SlashingKeeper = slashingkeeper.NewKeeper(
+	// 	appCodec,
+	// 	legacyAmino,
+	// 	keys[slashingtypes.StoreKey],
+	// 	// decorate the sdk keeper to capture all jail/ unjail events for MS
+	// 	meshseckeeper.NewStakingDecorator(app.StakingKeeper, app.MeshSecKeeper),
+	// 	authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+	// )
 
 	invCheckPeriod := cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod))
 	app.CrisisKeeper = crisiskeeper.NewKeeper(
@@ -528,7 +537,7 @@ func NewMeshApp(
 		keys[evidencetypes.StoreKey],
 		app.StakingKeeper,
 		// decorate the SlashingKeeper to capture the tombstone event
-		meshseckeeper.CaptureTombstoneDecorator(app.MeshSecKeeper, app.SlashingKeeper, app.StakingKeeper),
+		app.SlashingKeeper,
 	)
 	// If evidence needs to be handled for the app, set routes in router here and seal
 	app.EvidenceKeeper = *evidenceKeeper

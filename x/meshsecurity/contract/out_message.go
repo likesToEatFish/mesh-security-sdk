@@ -14,7 +14,7 @@ type (
 	Validator = wasmvmtypes.Validator
 	// ValidatorAddr alias for the Bech32 address string of sdk.ValAddress
 	ValidatorAddr = string
-
+	// mmmmmmm:, [{cosmosvaloper1wfes8uymyfnw2d50knjmcte4gpmy6dm8utdya4 1131 1578101825 1030 -62135596800 0 41400000 0.100000000000000000}]
 	ValidatorSlash struct {
 		ValidatorAddr    string `json:"address"`
 		Height           int64  `json:"height"`

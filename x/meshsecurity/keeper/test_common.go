@@ -276,6 +276,7 @@ func CreateDefaultTestInput(t testing.TB, opts ...Option) (sdk.Context, TestKeep
 		bankKeeper,
 		stakingKeeper,
 		wasmKeeper,
+		slashingKeeper,
 		authority,
 		opts...,
 	)

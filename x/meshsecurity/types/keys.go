@@ -32,6 +32,7 @@ var (
 	SchedulerKeyPrefix            = []byte{0x4}
 
 	PipedValsetPrefix = []byte{0x5}
+	DelegateVirtual   = []byte{0x6}
 )
 
 type PipedValsetOperation byte
@@ -53,6 +54,7 @@ type SlashInfo struct {
 	TotalSlashAmount string
 	SlashFraction    string
 	TimeInfraction   time.Time
+	ConsensusAddress string
 }
 
 // BuildMaxCapLimitKey build max cap limit store key
@@ -128,4 +130,8 @@ func BuildPipedValsetOpKey(op PipedValsetOperation, val sdk.ValAddress, slashInf
 		copy(r[pn+an+1+1+8+8+1+tn+1+sn:], b)
 	}
 	return r
+}
+
+func BuildDelegateVirtualKey(contractAddr sdk.AccAddress) []byte {
+	return append(DelegateVirtual, contractAddr.Bytes()...)
 }

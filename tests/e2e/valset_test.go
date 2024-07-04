@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -175,9 +176,14 @@ func jailValidator(t *testing.T, consAddr sdk.ConsAddress, coordinator *wasmibct
 	signInfo.MissedBlocksCounter = app.SlashingKeeper.MinSignedPerWindow(ctx)
 	app.SlashingKeeper.SetValidatorSigningInfo(ctx, consAddr, signInfo)
 	power := app.StakingKeeper.GetLastValidatorPower(ctx, sdk.ValAddress(consAddr))
+	fmt.Println("dddd", power)
 	app.SlashingKeeper.HandleValidatorSignature(ctx, cryptotypes.Address(consAddr), power, false)
+	power = app.StakingKeeper.GetLastValidatorPower(ctx, sdk.ValAddress(consAddr))
+	fmt.Println("dddd", power)
 	// when updates trigger
 	chain.NextBlock()
+	power = app.StakingKeeper.GetLastValidatorPower(ctx, sdk.ValAddress(consAddr))
+	fmt.Println("dddd", power)
 }
 
 func unjailValidator(t *testing.T, consAddr sdk.ConsAddress, operatorKeys *secp256k1.PrivKey, coordinator *wasmibctesting.Coordinator, chain *wasmibctesting.TestChain, app *app.MeshApp) {

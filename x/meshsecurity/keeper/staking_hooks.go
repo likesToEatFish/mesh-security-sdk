@@ -1,8 +1,10 @@
 package keeper
 
 import (
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
 type StakingHooks struct{}
@@ -29,6 +31,15 @@ func (h Hooks) AfterValidatorBeginUnbonding(ctx sdk.Context, _ sdk.ConsAddress, 
 }
 
 func (h Hooks) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) error {
+	// todo slashinfo anf total Amout
+	var slashInfo = types.SlashInfo{
+		Power:            91,
+		InfractionHeight: ctx.BlockHeight(),
+		SlashFraction:    fraction.String(),
+		TimeInfraction:   ctx.BlockTime(),
+	}
+
+	h.k.ScheduleSlashed(ctx, slashInfo, valAddr, math.ZeroInt(), fraction)
 	return nil
 }
 

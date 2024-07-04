@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -16,6 +17,28 @@ type TaskExecutionResponseHandler interface {
 	Handle(ctx sdk.Context, e keeper.ExecResult)
 }
 
+func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k *keeper.Keeper) {
+	for _, tmMesh := range req.ByzantineValidators {
+		switch tmMesh.Type {
+
+		case abci.MisbehaviorType_DUPLICATE_VOTE, abci.MisbehaviorType_LIGHT_CLIENT_ATTACK:
+			meshInfration := types.FromABCIMeshInfaction(tmMesh)
+			fmt.Println("jjjjjjjjjjjj", meshInfration.ConsensusAddress)
+			k.HandleInfration(ctx, meshInfration)
+
+		default:
+			keeper.ModuleLogger(ctx).Error(fmt.Sprintf("ignored unknown type: %s", tmMesh.Type))
+		}
+	}
+
+	pram := k.Slashing.GetParams(ctx)
+	for _, voteInfo := range req.LastCommitInfo.GetVotes() {
+		k.HandleValidatorSignature(ctx, pram, voteInfo.Validator.Address, voteInfo.Validator.Power, voteInfo.SignedLastBlock)
+	}
+
+	// k.HandleEvenSlash(ctx)
+}
+
 // EndBlocker is called after every block
 func EndBlocker(ctx sdk.Context, k *keeper.Keeper, h TaskExecutionResponseHandler) {
 	defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), telemetry.MetricKeyEndBlocker)
@@ -25,8 +48,10 @@ func EndBlocker(ctx sdk.Context, k *keeper.Keeper, h TaskExecutionResponseHandle
 	do(k.ExecScheduledTasks(ctx, types.SchedulerTaskValsetUpdate, epochLength, func(ctx sdk.Context, contract sdk.AccAddress) error {
 		report, err := k.ValsetUpdateReport(ctx)
 		if err != nil {
+			fmt.Println("errrrrrrrrrrr")
 			return err
 		}
+		fmt.Println("mmmmmmm:,", report.Slashed)
 		// If there was a slashing event, multiply the total slash amount by the delegator shares ratio for `contract`
 		if report.Slashed != nil {
 			for i, slash := range report.Slashed {
@@ -62,6 +87,7 @@ func EndBlocker(ctx sdk.Context, k *keeper.Keeper, h TaskExecutionResponseHandle
 				report.Slashed[i].SlashAmount = delegatorSlashAmount.RoundInt().String()
 			}
 		}
+		fmt.Println("chua cham den")
 		return k.SendValsetUpdate(ctx, contract, report)
 	}))
 	k.ClearPipedValsetOperations(ctx)
@@ -76,6 +102,7 @@ func rspHandler(ctx sdk.Context, h TaskExecutionResponseHandler) func(results []
 			panic(fmt.Sprintf("task scheduler: %s", err)) // todo: log or fail?
 		}
 		for _, r := range results {
+			fmt.Println("kq:", r)
 			h.Handle(ctx, r)
 		}
 	}

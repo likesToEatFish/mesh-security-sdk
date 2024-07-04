@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"cosmossdk.io/math"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/address"
 )
 
 func TestHasMaxCapLimit(t *testing.T) {
@@ -122,4 +122,39 @@ func TestSetMaxCapLimit(t *testing.T) {
 			assert.Equal(t, limitAmount, k.GetMaxCapLimit(ctx, myContractAddr))
 		})
 	}
+}
+
+func TestSetGetDelegatorVirtual(t *testing.T) {
+	pCtx, keepers := CreateDefaultTestInput(t)
+	k := keepers.MeshKeeper
+	var (
+		myValAddr      = sdk.ValAddress(rand.Bytes(address.Len))
+		myContractAddr = sdk.AccAddress(rand.Bytes(32))
+	)
+	// set
+	k.setDelegateVirtual(pCtx, myContractAddr, myValAddr)
+
+	// get
+	actors := []sdk.AccAddress{}
+	vals := []sdk.ValAddress{}
+	k.iterateDelegateVirtual(pCtx, func(aa sdk.AccAddress, va sdk.ValAddress) bool {
+		actors = append(actors, aa)
+		vals = append(vals, va)
+		return false
+	})
+	require.Equal(t, 1, len(actors))
+	require.Equal(t, myContractAddr, actors[0])
+
+	// remove
+	k.deleteDelegateVirtual(pCtx, myContractAddr)
+
+	// get
+	actors = []sdk.AccAddress{}
+	vals = []sdk.ValAddress{}
+	k.iterateDelegateVirtual(pCtx, func(aa sdk.AccAddress, va sdk.ValAddress) bool {
+		actors = append(actors, aa)
+		vals = append(vals, va)
+		return false
+	})
+	require.Equal(t, 0, len(actors))
 }

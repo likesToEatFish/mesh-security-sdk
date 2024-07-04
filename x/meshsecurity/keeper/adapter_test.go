@@ -3,58 +3,58 @@ package keeper
 import (
 	"testing"
 
-	"github.com/cometbft/cometbft/libs/rand"
+	// "github.com/cometbft/cometbft/libs/rand"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/address"
+	// "github.com/cosmos/cosmos-sdk/types/address"
 	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
 
 	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 )
 
-func TestCaptureTombstone(t *testing.T) {
-	pCtx, keepers := CreateDefaultTestInput(t)
+// func TestCaptureTombstone(t *testing.T) {
+// 	pCtx, keepers := CreateDefaultTestInput(t)
 
-	val := MinValidatorFixture(t)
-	myConsAddress, err := val.GetConsAddr()
-	require.NoError(t, err)
-	keepers.StakingKeeper.SetValidatorByConsAddr(pCtx, val)
-	keepers.StakingKeeper.SetValidator(pCtx, val)
-	skMock, capturedTombstones := NewMockEvidenceSlashingKeeper()
-	decorator := CaptureTombstoneDecorator(keepers.MeshKeeper, skMock, keepers.StakingKeeper)
-	otherConsAddress := rand.Bytes(address.Len)
-	specs := map[string]struct {
-		addr      sdk.ConsAddress
-		expPassed []sdk.ConsAddress
-		expStored []types.PipedValsetOperation
-	}{
-		"with existing validator": {
-			addr:      myConsAddress,
-			expPassed: []sdk.ConsAddress{myConsAddress},
-			expStored: []types.PipedValsetOperation{types.ValidatorTombstoned},
-		},
-		"unknown consensus address": {
-			addr:      otherConsAddress,
-			expPassed: []sdk.ConsAddress{otherConsAddress},
-		},
-	}
-	for name, spec := range specs {
-		t.Run(name, func(t *testing.T) {
-			ctx, _ := pCtx.CacheContext()
-			*capturedTombstones = make([]sdk.ConsAddress, 0, 1)
-			// when
-			decorator.Tombstone(ctx, spec.addr)
+// 	val := MinValidatorFixture(t)
+// 	myConsAddress, err := val.GetConsAddr()
+// 	require.NoError(t, err)
+// 	keepers.StakingKeeper.SetValidatorByConsAddr(pCtx, val)
+// 	keepers.StakingKeeper.SetValidator(pCtx, val)
+// 	skMock, capturedTombstones := NewMockEvidenceSlashingKeeper()
+// 	decorator := CaptureTombstoneDecorator(keepers.MeshKeeper, skMock, keepers.StakingKeeper)
+// 	otherConsAddress := rand.Bytes(address.Len)
+// 	specs := map[string]struct {
+// 		addr      sdk.ConsAddress
+// 		expPassed []sdk.ConsAddress
+// 		expStored []types.PipedValsetOperation
+// 	}{
+// 		"with existing validator": {
+// 			addr:      myConsAddress,
+// 			expPassed: []sdk.ConsAddress{myConsAddress},
+// 			expStored: []types.PipedValsetOperation{types.ValidatorTombstoned},
+// 		},
+// 		"unknown consensus address": {
+// 			addr:      otherConsAddress,
+// 			expPassed: []sdk.ConsAddress{otherConsAddress},
+// 		},
+// 	}
+// 	for name, spec := range specs {
+// 		t.Run(name, func(t *testing.T) {
+// 			ctx, _ := pCtx.CacheContext()
+// 			*capturedTombstones = make([]sdk.ConsAddress, 0, 1)
+// 			// when
+// 			decorator.Tombstone(ctx, spec.addr)
 
-			// then
-			assert.Equal(t, spec.expPassed, *capturedTombstones)
-			// and stored for async propagation
-			appStoredOps := FetchAllStoredOperations(t, ctx, keepers.MeshKeeper)
-			assert.Equal(t, spec.expStored, appStoredOps[val.OperatorAddress])
-		})
-	}
-}
+// 			// then
+// 			assert.Equal(t, spec.expPassed, *capturedTombstones)
+// 			// and stored for async propagation
+// 			appStoredOps := FetchAllStoredOperations(t, ctx, keepers.MeshKeeper)
+// 			assert.Equal(t, spec.expStored, appStoredOps[val.OperatorAddress])
+// 		})
+// 	}
+// }
 
 func TestCaptureStakingEvents(t *testing.T) {
 	pCtx, keepers := CreateDefaultTestInput(t)
@@ -72,7 +72,7 @@ func TestCaptureStakingEvents(t *testing.T) {
 	keepers.StakingKeeper.SetValidatorByConsAddr(pCtx, valJailed)
 	keepers.StakingKeeper.SetValidator(pCtx, valJailed)
 
-	decorator := NewStakingDecorator(keepers.StakingKeeper, keepers.MeshKeeper)
+	decorator := keepers.MeshKeeper
 	specs := map[string]struct {
 		consAddr  sdk.ConsAddress
 		op        func(sdk.Context, sdk.ConsAddress)

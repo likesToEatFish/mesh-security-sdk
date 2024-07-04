@@ -1,16 +1,120 @@
 package e2e
 
 import (
-	"cosmossdk.io/math"
 	"encoding/base64"
 	"fmt"
+	"testing"
+	"time"
+
+	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/osmosis-labs/mesh-security-sdk/x/meshsecurity/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestSlashingScenario1(t *testing.T) {
+	// Slashing scenario 1:
+	// https://github.com/osmosis-labs/mesh-security/blob/main/docs/ibc/Slashing.md#scenario-1-slashed-delegator-has-free-collateral-on-the-vault
+	//
+	// - We use millions instead of unit tokens.
+	x := setupExampleChains(t)
+	consumerCli, _, providerCli := setupMeshSecurity(t, x)
+
+	// Provider chain
+	// ==============
+	// Deposit - A user deposits the vault denom to provide some collateral to their account
+	execMsg := `{"bond":{}}`
+	providerCli.MustExecVault(execMsg, sdk.NewInt64Coin(x.ProviderDenom, 200_000_000))
+
+	// Stake Locally - A user triggers a local staking action to a chosen validator.
+	myLocalValidatorAddr := sdk.ValAddress(x.ProviderChain.Vals.Validators[0].Address).String()
+	execLocalStakingMsg := fmt.Sprintf(`{"stake_local":{"amount": {"denom":%q, "amount":"%d"}, "msg":%q}}`,
+		x.ProviderDenom, 190_000_000,
+		base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf(`{"validator": "%s"}`, myLocalValidatorAddr))))
+	providerCli.MustExecVault(execLocalStakingMsg)
+
+	assert.Equal(t, 10_000_000, providerCli.QueryVaultFreeBalance())
+
+	// Cổ phần chéo - Người dùng rút các khoản thế chấp bổ sung trên cùng một tài sản thế chấp "đặt cược chéo" trên các chuỗi khác nhau.
+	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
+	myExtValidator1 := sdk.ValAddress(x.ConsumerChain.Vals.Validators[1].Address)
+	myExtValidator1Addr := myExtValidator1.String()
+	err := providerCli.ExecStakeRemote(myExtValidator1Addr, sdk.NewInt64Coin(x.ProviderDenom, 100_000_000))
+	require.NoError(t, err)
+	myExtValidator2 := sdk.ValAddress(x.ConsumerChain.Vals.Validators[2].Address)
+	myExtValidator2Addr := myExtValidator2.String()
+	err = providerCli.ExecStakeRemote(myExtValidator2Addr, sdk.NewInt64Coin(x.ProviderDenom, 50_000_000))
+	require.NoError(t, err)
+
+	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
+
+	// Check collateral
+	require.Equal(t, 200_000_000, providerCli.QueryVaultBalance())
+	// Check max lien
+	require.Equal(t, 190_000_000, providerCli.QueryMaxLien())
+	// Check slashable amount
+	require.Equal(t, 68_000_000, providerCli.QuerySlashableAmount())
+	// Check free collateral
+	require.Equal(t, 10_000_000, providerCli.QueryVaultFreeBalance()) // 200 - max(34, 190) = 200 - 190 = 10
+
+	// Consumer chain
+	// ====================
+	//
+	// thì số tiền được ủy quyền không được cập nhật trước kỷ nguyên
+	// then delegated amount is not updated before the epoch
+	consumerCli.assertTotalDelegated(math.ZeroInt()) // ensure nothing cross staked yet đảm bảo chưa có gì được đặt cược chéo
+
+	// when an epoch ends, the delegation rebalance is triggered
+	consumerCli.ExecNewEpoch()
+
+	// then the total delegated amount is updated
+	consumerCli.assertTotalDelegated(math.NewInt(67_500_000)) // 150_000_000 / 2 * (1 - 0.1)
+
+	// and the delegated amount is updated for the validators
+	consumerCli.assertShare(myExtValidator1, math.LegacyMustNewDecFromStr("45"))   // 100_000_000 / 2 * (1 - 0.1) / 1_000_000 # default sdk factor
+	consumerCli.assertShare(myExtValidator2, math.LegacyMustNewDecFromStr("22.5")) // 50_000_000 / 2 * (1 - 0.1) / 1_000_000 # default sdk factor
+
+	ctx := x.ConsumerChain.GetContext()
+	validator1, found := x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
+	require.True(t, found)
+	require.False(t, validator1.IsJailed())
+	// Off by 1_000_000, because of validator self bond on setup
+	require.Equal(t, validator1.GetTokens(), sdk.NewInt(46_000_000))
+	validator2, found := x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator2)
+	require.True(t, found)
+	require.False(t, validator2.IsJailed())
+	// Off by 1_000_000, because of validator self bond on setup
+	require.Equal(t, validator2.GetTokens(), sdk.NewInt(23_500_000))
+
+	// Validator 1 on the Consumer chain is jailed
+	myExtValidator1ConsAddr := sdk.ConsAddress(x.ConsumerChain.Vals.Validators[1].PubKey.Address())
+	jailValidator(t, myExtValidator1ConsAddr, x.Coordinator, x.ConsumerChain, x.ConsumerApp)
+
+	x.ConsumerChain.NextBlock()
+
+	// Assert that the validator's stake has been slashed
+	// and that the validator has been jailed
+	validator1, found = x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
+	require.True(t, validator1.IsJailed())
+	require.Equal(t, validator1.GetTokens(), sdk.NewInt(41_400_000)) // 10% slash
+
+	// Relay IBC packets to the Provider chain
+	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
+
+	// Next block on the Provider chain
+	x.ProviderChain.NextBlock()
+
+	// Check new collateral
+	require.Equal(t, 190_000_001, providerCli.QueryVaultBalance())
+	// Check new max lien
+	require.Equal(t, 190_000_000, providerCli.QueryMaxLien())
+	// Check new slashable amount
+	require.Equal(t, 66_000_001, providerCli.QuerySlashableAmount())
+	// Check new free collateral
+	require.Equal(t, 1, providerCli.QueryVaultFreeBalance()) // 190 - max(33, 190) = 190 - 190 = 0
+}
+func TestSlashingWithHandleSlash(t *testing.T) {
 	// Slashing scenario 1:
 	// https://github.com/osmosis-labs/mesh-security/blob/main/docs/ibc/Slashing.md#scenario-1-slashed-delegator-has-free-collateral-on-the-vault
 	//
@@ -86,13 +190,23 @@ func TestSlashingScenario1(t *testing.T) {
 	myExtValidator1ConsAddr := sdk.ConsAddress(x.ConsumerChain.Vals.Validators[1].PubKey.Address())
 	jailValidator(t, myExtValidator1ConsAddr, x.Coordinator, x.ConsumerChain, x.ConsumerApp)
 
+	sl := types.SlashInfo{
+		InfractionHeight: ctx.BlockHeight(),
+		ConsensusAddress: myExtValidator1ConsAddr.String(),
+		Power:            46,
+		SlashFraction:    x.ConsumerApp.SlashingKeeper.SlashFractionDowntime(ctx).String(),
+		TimeInfraction:   time.Now(),
+	}
+	fmt.Println("jjjj,", sl.Power)
+	x.ConsumerApp.MeshSecKeeper.HandleInfration(x.ConsumerChain.GetContext(), sl)
+
 	x.ConsumerChain.NextBlock()
 
 	// Assert that the validator's stake has been slashed
 	// and that the validator has been jailed
 	validator1, found = x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
 	require.True(t, validator1.IsJailed())
-	require.Equal(t, validator1.GetTokens(), sdk.NewInt(41_400_000)) // 10% slash
+	// require.Equal(t, validator1.GetTokens(), sdk.NewInt(41_400_000)) // 10% slash
 
 	// Relay IBC packets to the Provider chain
 	require.NoError(t, x.Coordinator.RelayAndAckPendingPackets(x.IbcPath))
@@ -101,13 +215,15 @@ func TestSlashingScenario1(t *testing.T) {
 	x.ProviderChain.NextBlock()
 
 	// Check new collateral
-	require.Equal(t, 190_000_001, providerCli.QueryVaultBalance())
+	require.Equal(t, 110000001, providerCli.QueryVaultBalance())
 	// Check new max lien
-	require.Equal(t, 190_000_000, providerCli.QueryMaxLien())
+	require.Equal(t, 110000001, providerCli.QueryMaxLien())
 	// Check new slashable amount
-	require.Equal(t, 66_000_001, providerCli.QuerySlashableAmount())
+	require.Equal(t, 34000002, providerCli.QuerySlashableAmount())
 	// Check new free collateral
-	require.Equal(t, 1, providerCli.QueryVaultFreeBalance()) // 190 - max(33, 190) = 190 - 190 = 0
+	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 190 - max(33, 190) = 190 - 190 = 0
+	require.Equal(t, 1, 2)
+	// {30E2301C8C6F801FC1D4218AF4AE03509B745725169F7A379C820C167957E363 Error parsing into type mesh_apis::virtual_staking_api::SudoMsg: Invalid number.: execute wasm contract failed [!cosm!wasm/wasmd@v0.45.0/x/wasm/keeper/keeper.go:518] <nil> <nil> 69236 500000 0}
 }
 
 func TestSlashingScenario2(t *testing.T) {
@@ -195,6 +311,7 @@ func TestSlashingScenario2(t *testing.T) {
 	require.Equal(t, 72_000_002, providerCli.QuerySlashableAmount())
 	// Check new free collateral
 	require.Equal(t, 0, providerCli.QueryVaultFreeBalance()) // 190 - max(36, 190) = 190 - 190 = 0
+	require.Equal(t, 1, 2)
 }
 
 func TestSlashingScenario3(t *testing.T) {

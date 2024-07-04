@@ -121,6 +121,7 @@ func setupExampleChains(t *testing.T) example {
 	}
 }
 
+// setup and gov maxcap conect...
 func setupMeshSecurity(t *testing.T, x example) (*TestConsumerClient, ConsumerContract, *TestProviderClient) {
 	x.Coordinator.SetupConnections(x.IbcPath)
 

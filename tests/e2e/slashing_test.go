@@ -33,6 +33,7 @@ func TestSlashingScenario1(t *testing.T) {
 
 	assert.Equal(t, 10_000_000, providerCli.QueryVaultFreeBalance())
 
+	// Cổ phần chéo - Người dùng rút các khoản thế chấp bổ sung trên cùng một tài sản thế chấp "đặt cược chéo" trên các chuỗi khác nhau.
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
 	myExtValidator1 := sdk.ValAddress(x.ConsumerChain.Vals.Validators[1].Address)
 	myExtValidator1Addr := myExtValidator1.String()
@@ -57,8 +58,9 @@ func TestSlashingScenario1(t *testing.T) {
 	// Consumer chain
 	// ====================
 	//
+	// thì số tiền được ủy quyền không được cập nhật trước kỷ nguyên
 	// then delegated amount is not updated before the epoch
-	consumerCli.assertTotalDelegated(math.ZeroInt()) // ensure nothing cross staked yet
+	consumerCli.assertTotalDelegated(math.ZeroInt()) // ensure nothing cross staked yet đảm bảo chưa có gì được đặt cược chéo
 
 	// when an epoch ends, the delegation rebalance is triggered
 	consumerCli.ExecNewEpoch()
@@ -154,6 +156,7 @@ func TestSlashingScenario2(t *testing.T) {
 	// then delegated amount is not updated before the epoch
 	consumerCli.assertTotalDelegated(math.ZeroInt()) // ensure nothing cross staked yet
 
+	// khi một kỷ nguyên kết thúc, việc tái cân bằng ủy quyền được kích hoạt
 	// when an epoch ends, the delegation rebalance is triggered
 	consumerCli.ExecNewEpoch()
 

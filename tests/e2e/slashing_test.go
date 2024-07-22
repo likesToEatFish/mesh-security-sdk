@@ -35,6 +35,9 @@ func TestSlashingScenario1(t *testing.T) {
 	providerCli.MustExecVault(execLocalStakingMsg)
 
 	assert.Equal(t, 10_000_000, providerCli.QueryVaultFreeBalance())
+	ctx := x.ConsumerChain.GetContext()
+	i := x.ConsumerApp.StakingKeeper.GetLastTotalPower(ctx)
+	fmt.Println("powwwwwwwwwwwwww", i)
 
 	// Cổ phần chéo - Người dùng rút các khoản thế chấp bổ sung trên cùng một tài sản thế chấp "đặt cược chéo" trên các chuỗi khác nhau.
 	// Cross Stake - A user pulls out additional liens on the same collateral "cross staking" it on different chains.
@@ -75,7 +78,7 @@ func TestSlashingScenario1(t *testing.T) {
 	consumerCli.assertShare(myExtValidator1, math.LegacyMustNewDecFromStr("45"))   // 100_000_000 / 2 * (1 - 0.1) / 1_000_000 # default sdk factor
 	consumerCli.assertShare(myExtValidator2, math.LegacyMustNewDecFromStr("22.5")) // 50_000_000 / 2 * (1 - 0.1) / 1_000_000 # default sdk factor
 
-	ctx := x.ConsumerChain.GetContext()
+	ctx = x.ConsumerChain.GetContext()
 	validator1, found := x.ConsumerApp.StakingKeeper.GetValidator(ctx, myExtValidator1)
 	require.True(t, found)
 	require.False(t, validator1.IsJailed())
@@ -105,6 +108,8 @@ func TestSlashingScenario1(t *testing.T) {
 	// Next block on the Provider chain
 	x.ProviderChain.NextBlock()
 
+	i = x.ConsumerApp.StakingKeeper.GetLastTotalPower(ctx)
+	fmt.Println("powwwwwwwwwwwwww", i)
 	// Check new collateral
 	require.Equal(t, 190_000_001, providerCli.QueryVaultBalance())
 	// Check new max lien

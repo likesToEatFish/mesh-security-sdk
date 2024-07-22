@@ -18,7 +18,9 @@ type TaskExecutionResponseHandler interface {
 }
 
 func BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock, k *keeper.Keeper) {
+	fmt.Println("hhhhhh: ", len(req.ByzantineValidators))
 	for _, tmMesh := range req.ByzantineValidators {
+		fmt.Println("gggggggg:", tmMesh.Validator.Power)
 		switch tmMesh.Type {
 
 		case abci.MisbehaviorType_DUPLICATE_VOTE, abci.MisbehaviorType_LIGHT_CLIENT_ATTACK:
@@ -87,7 +89,7 @@ func EndBlocker(ctx sdk.Context, k *keeper.Keeper, h TaskExecutionResponseHandle
 				report.Slashed[i].SlashAmount = delegatorSlashAmount.RoundInt().String()
 			}
 		}
-		fmt.Println("chua cham den")
+		// fmt.Println("chua cham den")
 		return k.SendValsetUpdate(ctx, contract, report)
 	}))
 	k.ClearPipedValsetOperations(ctx)

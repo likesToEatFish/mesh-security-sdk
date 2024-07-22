@@ -46,7 +46,6 @@ func (k Keeper) Jail(ctx sdk.Context, consAddr sdk.ConsAddress) {
 				"cause", err,
 				"validator", consAddr.String())
 	}
-	// k.Staking.Jail(ctx, consAddr)
 }
 
 // Unjail captures the unjail event and calls the decorated staking keeper unjail method
@@ -61,7 +60,6 @@ func (k Keeper) Unjail(ctx sdk.Context, consAddr sdk.ConsAddress) {
 				"cause", err,
 				"validator", consAddr.String())
 	}
-	// k.Staking.Unjail(ctx, consAddr)
 }
 
 // Tombstone is executed in the end-blocker by the evidence module
@@ -76,5 +74,4 @@ func (k Keeper) Tombstone(ctx sdk.Context, address sdk.ConsAddress) {
 				"cause", err,
 				"validator", address.String())
 	}
-	// k.Slashing.Tombstone(ctx, address)
 }

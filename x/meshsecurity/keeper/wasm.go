@@ -2,7 +2,7 @@ package keeper
 
 import (
 	"encoding/json"
-	"fmt"
+	// "fmt"
 
 	errorsmod "cosmossdk.io/errors"
 
@@ -30,7 +30,7 @@ func (k Keeper) SendValsetUpdate(ctx sdk.Context, contractAddr sdk.AccAddress, v
 // caller must ensure gas limits are set proper and handle panics
 func (k Keeper) doSudoCall(ctx sdk.Context, contractAddr sdk.AccAddress, msg contract.SudoMsg) error {
 	bz, err := json.Marshal(msg)
-	fmt.Println("msg:", msg)
+	// fmt.Println("msg:", msg)
 	if err != nil {
 		return errorsmod.Wrap(err, "marshal sudo msg")
 	}
